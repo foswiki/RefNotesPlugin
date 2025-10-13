@@ -1,0 +1,166 @@
+%META:TOPICINFO{author="micha" comment="reprev" date="1760366600" format="1.1" reprev="2" version="2"}%
+---+!! %TOPIC%
+%FORMFIELD{"Description"}%
+
+%TOC%
+
+---++ Description
+
+This plugin brings a footnotes / endnotse / references solution to Foswiki on par with
+plugins on other wiki engines such as mediawiki or dokuwiki. Previous work exists such as 
+[[https://foswiki.org/Extensions/FootNotePlugin][FootNotePlugin]] which did not allow to display reference lists
+on a page freely, breaks custom skins such as <nop>NatSkin and had a few other limitations. The TWiki solution
+[[https://www.twiki.org/cgi-bin/view/Plugins/EndNotePlugin][EndNotePlugin]] has never been ported to Foswiki.
+In fact !FootNotePlugin has been based on !EndNotePlugin but suffered the same limitations. To further progress
+a full rewrite is provided in this plugin. Further features:
+
+   * named references to be reused multiple times on a page
+   * multiple groups of references such as "Notes", "Figures", "Literature" etc.
+   * extended formating features for reference lists
+   * improved styling of reference links
+
+---++ Examples
+
+You type:
+
+<verbatim>
+Tim Berners-Lee%REF{
+  Tim Berners-Lee is now director of the World Wide Web Consortium, 
+  and Professor of Computer Science at Southampton ECS.
+}% invented the World Wide Web.
+</verbatim>
+
+You get (if installed):
+
+Tim Berners-Lee%REF{
+  Tim Berners-Lee is now director of the World Wide Web Consortium, 
+  and Professor of Computer Science at Southampton ECS.
+}% invented the World Wide Web.
+
+You type:
+
+<verbatim>
+This is page content.%REF{
+  "_LibreOffice For Starters_, First Edition, Flexible Minds, Manchester, 2002, p. 18" 
+  name="libreoffice"
+}%
+LibreOffice%REF{name="libreoffice"}% forked from OpenOffice%REF{name="Corbet"
+  "Corbet, Jonathan. _[[https://lwn.net/Articles/637735/][Development activity in LibreOffice and OpenOffice]]_. LWN.net. 30 September 2018. Eklektix, Inc."
+}%
+which in turn was derived from StarOffice.
+</verbatim>
+
+You get (if installed):
+
+<noautolink>
+This is page content.%REF{
+  "_LibreOffice For Starters_, First Edition, Flexible Minds, Manchester, 2002, p. 18" 
+  name="libreoffice"
+}%
+LibreOffice%REF{name="libreoffice"}% forked from OpenOffice%REF{name="Corbet"
+  "Corbet, Jonathan. _[[https://lwn.net/Articles/637735/][Development activity in LibreOffice and OpenOffice]]_. LWN.net. 30 September 2018. Eklektix, Inc."
+}%
+which in turn was derived from StarOffice.
+</noautolink>
+
+You type:
+
+<verbatim>
+This is a note reference.%REF{"Wonder what this note is all about." group="notes"}%
+</verbatim>
+
+You get (if installed):
+
+This is a note reference.%REF{"Wonder what this note is all about." group="notes"}%
+
+---++ Syntax
+
+Reference Links are established the content using the =%REF= makro:
+
+| *Parameters* | *Description* | *Default* |
+| "..." | reference note; may be omitted when reusing a named reference |  |
+| name="..." | assign a name to the reference or reuse an already defined reference | _random_ |
+| group="..." | optional group which lists this reference | default |
+
+In general all references are to be displayed at the bottom of the page. You may do so explicitly using the =%REFERENCES= macro.
+Note that !NatSkin does so automatically.
+
+| *Parameters* | *Description* | *Default* |
+| group="..." | name the group to render all references for; renders all groups if left empty |  |
+| clear="on/off" | clears the list of references once the group has been rendered; any additional references following this macro assemble references afresh | on |
+| header="..." | header string prepended to the output | <verbatim><ul class='refNotes foswikiNoBullets $group'></verbatim> |
+| format="...." | format string for each reference note in the list | <verbatim><li id="$name"><b>$label</b> $text </li></verbatim> |
+| separator="..." | separator string between each note rendered | |
+| footer="..." | footer string appended to the output | <verbatim></ul></verbatim> |
+| &lt;_group>_title="..." | custom title for a group | default_title="References"  | 
+
+The =format= parameter may contain the following variables:
+
+   * =$index=: running reference number
+   * =$name=: name of a reference as provided by the user or a random one otherwise
+   * =$label=: label used to display the reference link
+   * =$text=: net content of the reference note
+
+In addition =header=, =separator= and =footer= may have:
+
+   * =$group=: name of the refernce group
+   * =$count=: number of references in a group
+   * =$numGroups=: number of groups
+   * =$title=: title of reference group (e.g. "Reference" for the default group)
+
+---++ Configuration
+
+The format of reference links can be configured using the =REFERENCSPLUGIN_LABELS= preference setting.
+This setting will then be used for all reference links and notes within its scope.
+
+Examples:
+
+default arabic labels in round brackets:
+<verbatim>   * Set REFERENCSPLUGIN_LABELS = (1)</verbatim>
+
+arabic labels with a right bracket only:
+<verbatim>   * Set REFERENCSPLUGIN_LABELS = 1)</verbatim>
+
+alphabet labels with brackets:
+<verbatim>   * Set REFERENCSPLUGIN_LABELS = (a)</verbatim>
+
+hexadecimal labels with square brackets:
+<verbatim>   * Set REFERENCSPLUGIN_LABELS = [x]</verbatim>
+
+romanian labels without brackes:
+<verbatim>   * Set REFERENCSPLUGIN_LABELS = i</verbatim>
+
+Possible label types:
+
+   * =1= - numeric
+   * =a= - alphabetic
+   * =A= - upper case alphabetic
+   * =i= - romanic 
+   * =I= - upper case romanic 
+   * =x= - hexadecimal
+   * =X= - upper case hexadecimal
+
+Brackets are specified by the character before and after the label type.
+Note that romanic labels are only available if you installed the required depencies (see below).
+
+---++ Installation Instructions
+%$INSTALL_INSTRUCTIONS%
+
+---++ Dependencies
+%$DEPENDENCIES%
+
+---++ Change History
+
+%TABLE{columnwidths="7em" tablewidth="100%"}%
+|  13 Oct 2025 | initial implementation |
+
+%META:FORM{name="PackageForm"}%
+%META:FIELD{name="Author" title="Author" value="Michael Daum"}%
+%META:FIELD{name="Version" title="Version" value="%25$VERSION%25"}%
+%META:FIELD{name="Release" title="Release" value="%25$RELEASE%25"}%
+%META:FIELD{name="Description" title="Description" value="%25$SHORTDESCRIPTION%25"}%
+%META:FIELD{name="Repository" title="Repository" value="https://github.com/foswiki/%25$ROOTMODULE%25"}%
+%META:FIELD{name="Copyright" title="Copyright" value="2025, Michael Daum, All Rights Reserved"}%
+%META:FIELD{name="License" title="License" value="GPL ([[http://www.gnu.org/copyleft/gpl.html][GNU General Public License]])"}%
+%META:FIELD{name="Home" title="Home" value="http://foswiki.org/Extensions/%25$ROOTMODULE%25"}%
+%META:FIELD{name="Support" title="Support" value="http://foswiki.org/Support/%25$ROOTMODULE%25"}%

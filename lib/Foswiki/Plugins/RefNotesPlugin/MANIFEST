@@ -1,0 +1,7 @@
+!noci
+data/System/RefNotesPlugin.txt 0644
+lib/Foswiki/Plugins/RefNotesPlugin/Config.spec 0644
+lib/Foswiki/Plugins/RefNotesPlugin/Core.pm 0644
+lib/Foswiki/Plugins/RefNotesPlugin/DEPENDENCIES 0644
+lib/Foswiki/Plugins/RefNotesPlugin/MANIFEST 0644
+lib/Foswiki/Plugins/RefNotesPlugin.pm 0644

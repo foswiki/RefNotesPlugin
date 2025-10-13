@@ -1,4 +1,4 @@
-%META:TOPICINFO{author="micha" comment="reprev" date="1760366600" format="1.1" reprev="2" version="2"}%
+%META:TOPICINFO{author="ProjectContributor" comment="" date="1760369383" format="1.1"  version="1"}%
 ---+!! %TOPIC%
 %FORMFIELD{"Description"}%
 
@@ -12,7 +12,7 @@ plugins on other wiki engines such as mediawiki or dokuwiki. Previous work exist
 on a page freely, breaks custom skins such as <nop>NatSkin and had a few other limitations. The TWiki solution
 [[https://www.twiki.org/cgi-bin/view/Plugins/EndNotePlugin][EndNotePlugin]] has never been ported to Foswiki.
 In fact !FootNotePlugin has been based on !EndNotePlugin but suffered the same limitations. To further progress
-a full rewrite is provided in this plugin. Further features:
+a full rewrite is provided in this plugin. Features:
 
    * named references to be reused multiple times on a page
    * multiple groups of references such as "Notes", "Figures", "Literature" etc.
@@ -81,6 +81,7 @@ Reference Links are established the content using the =%REF= makro:
 | "..." | reference note; may be omitted when reusing a named reference |  |
 | name="..." | assign a name to the reference or reuse an already defined reference | _random_ |
 | group="..." | optional group which lists this reference | default |
+| hidden="on/off" | only define a named reference but don't display nor add it to the references list unless being used by another =%REF= reusing this named reference | off |
 
 In general all references are to be displayed at the bottom of the page. You may do so explicitly using the =%REFERENCES= macro.
 Note that !NatSkin does so automatically.
@@ -142,6 +143,43 @@ Possible label types:
 
 Brackets are specified by the character before and after the label type.
 Note that romanic labels are only available if you installed the required depencies (see below).
+
+---++ Using predefined references 
+
+Sometimes there is a set of references that are the same on each page of a documentation. These can be predefined
+in a separate topic, say "CommonReferences". In this topic references are defined like this:
+
+<verbatim>
+%REF{
+  "Voudouris, C., Tsang, E.P.K., Partial Constraint Satisfaction Problems and Guided Local Search, 
+   Proceedings of the Second International Conference on the Practical Application of Constraint Technology (PACT'96), 
+   pp 337-356, London, UK, 1996
+  "
+  name="voudouris1996"
+  hidden="on"
+}%
+</verbatim>
+
+%REF{
+  "Voudouris, C., Tsang, E.P.K., Partial Constraint Satisfaction Problems and Guided Local Search, 
+   Proceedings of the Second International Conference on the Practical Application of Constraint Technology (PACT'96), 
+   pp 337-356, London, UK, 1996
+  "
+  name="voudouris1996"
+  hidden="on"
+}%
+
+Note the =hidden= parameter. This will define the reference name only but not display it unless being refered to later on.
+To include all common references use =%<nop>INCLUDE{"CommonReferences"}%= somewhere at the start of the documentation.
+Predefined reference can then be used by:
+
+<verbatim>%REF{name="voudouris1996"}%</verbatim>
+
+and this added to the reference list from there on:
+
+<blockquote>
+Guided local search%REF{name="voudouris1996"}% is a metaheuristic search method. A meta-heuristic method is a method that sits on top of a local search algorithm to change its behavior. 
+</blockquote>
 
 ---++ Installation Instructions
 %$INSTALL_INSTRUCTIONS%

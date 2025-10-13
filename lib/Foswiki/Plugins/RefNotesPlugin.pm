@@ -28,7 +28,7 @@ use warnings;
 
 use Foswiki::Func ();
 
-our $VERSION = '0.10';
+our $VERSION = '0.20';
 our $RELEASE = '%$RELEASE%';
 our $SHORTDESCRIPTION = 'Footnotes for Foswiki';
 our $LICENSECODE = '%$LICENSECODE%';

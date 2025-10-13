@@ -19,6 +19,7 @@ use strict;
 use warnings;
 
 use Foswiki::Func ();
+#use Data::Dump qw(dump);
 
 use constant TRACE => 0; # toggle me
 
@@ -92,18 +93,22 @@ sub REF {
   _writeDebug("called REF()");
   my $result = '';
 
-  my $ref = $this->getRef($params->{name}, $params->{_DEFAULT}, $params->{group});
+  my $ref = $this->getRef($params);
   return _inlineError("unknown reference") unless defined $ref;
 
   return $this->formatRef($ref);
 }
 
 sub getRef {
-  my ($this, $name, $text, $groupName) = @_;
+  my ($this, $params) = @_;
 
   my $ref;
 
-  $groupName //= 'default';
+  my $groupName = $params->{group} // 'default';
+  my $name = $params->{name};
+  my $hidden = Foswiki::Func::isTrue($params->{name}, 0) ? 1:0;
+  my $text = $params->{_DEFAULT};
+
   my $group = $this->{groups}{$groupName};
 
   unless (defined $group) {
@@ -115,7 +120,7 @@ sub getRef {
   }
 
   if (defined $text) {
-    my $index = $group->{index}++;
+    my $index = $hidden ? 0 : $group->{index}++;
     $name //= "refLink$index";
 
     $ref = {
@@ -123,12 +128,21 @@ sub getRef {
       index => $index,
       text => $text,
       groupName => $groupName,
+      hidden => $hidden
     };
 
     $group->{refs}{$name} = $ref;
 
   } else {
     $ref = $group->{refs}{$name} if defined $name;
+    if ($ref) {
+      if ($ref->{hidden}) {
+        my $index = $group->{index}++;
+        $ref->{hidden} = 0;
+        $ref->{index} = $index;
+        $ref->{name} = "refLink$index";
+      }
+    }
   }
 
   return $ref;
@@ -139,7 +153,7 @@ sub getLabel {
 
   my $label;
 
-  _writeDebug("called getLabel with format='$this->{labelFormat}'");
+  #_writeDebug("called getLabel with format='$this->{labelFormat}', ref=".dump($ref));
 
   # alphabet
   $label = chr((ord 'a') + ($ref->{index} - 1)) if $this->{labelFormat} eq 'a';
@@ -168,6 +182,8 @@ sub getLabel {
 
 sub formatRef {
   my ($this, $ref) = @_;
+
+  return "" if $ref->{hidden};
 
   my $label = $this->getLabel($ref);
   $label = $ref->{groupName} . " " . $label unless $ref->{groupName} eq 'default';
@@ -231,6 +247,8 @@ sub formatGroup {
 
   my @result = ();
   foreach my $ref (sort {$a->{index} <=> $b->{index}} values %{$group->{refs}}) {
+    next if $ref->{hidden};
+
     my $line = $format;
     my $label = $this->getLabel($ref);
     my $name = $this->getAnchor($ref);

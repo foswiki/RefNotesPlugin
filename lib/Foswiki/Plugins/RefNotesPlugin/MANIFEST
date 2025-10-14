@@ -5,3 +5,5 @@ lib/Foswiki/Plugins/RefNotesPlugin/Core.pm 0644
 lib/Foswiki/Plugins/RefNotesPlugin/DEPENDENCIES 0644
 lib/Foswiki/Plugins/RefNotesPlugin/MANIFEST 0644
 lib/Foswiki/Plugins/RefNotesPlugin.pm 0644
+lib/Foswiki/Plugins/RefNotesPlugin/Ref.pm 0644
+lib/Foswiki/Plugins/RefNotesPlugin/Group.pm 0644

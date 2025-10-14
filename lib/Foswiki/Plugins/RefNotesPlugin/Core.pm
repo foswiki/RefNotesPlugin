@@ -18,42 +18,47 @@ package Foswiki::Plugins::RefNotesPlugin::Core;
 use strict;
 use warnings;
 
+=begin TML
+
+---+ package Foswiki::Plugins::RefNotesPlugin::Core
+
+core class for this plugin
+
+an singleton instance is allocated on demand
+
+=cut
+
 use Foswiki::Func ();
+use Foswiki::Plugins::RefNotesPlugin::Ref ();
+use Foswiki::Plugins::RefNotesPlugin::Group ();
 #use Data::Dump qw(dump);
+
+=begin TML
+
+---++ =ClassProperty= TRACE
+
+boolean toggle to enable debugging of this class
+
+=cut
 
 use constant TRACE => 0; # toggle me
 
-our $ROMAN_ENABLED;
+=begin TML
 
-BEGIN {
-  eval 'use Roman()';
-  $ROMAN_ENABLED = $@ ? 0 : 1;
-}
+---++ ClassMethod new() -> $core
+
+constructor for a Core object
+
+=cut
 
 sub new {
   my $class = shift;
+  my $session = shift;
 
-  my @labelBrackets = ("(", ")");
-  my $labelFormat = Foswiki::Func::getPreferencesValue("REFNOTESPLUGIN_LABELFORMAT") // "(1)";
-  $labelFormat =~ s/^\s+//;
-  $labelFormat =~ s/\s+//;
-
-  if ($labelFormat =~ /^(.)?(1|a|A|x|X|i|I)(.)?$/) {
-    $labelBrackets[0] = $1 // "";
-    $labelFormat = $2;
-    $labelBrackets[1] = $3 // "";
-  }
 
   my $this = bless({
-    groups => {
-      default => {
-        refs => {},
-        index => 1,
-        name => "default",
-      }
-    },
-    labelFormat => $labelFormat,
-    labelBrackets => \@labelBrackets,
+    groups => {},
+    session => $session,
     @_
   }, $class);
 
@@ -61,173 +66,153 @@ sub new {
   return $this;
 }
 
+=begin TML
+
+---++ ObjectMethod finish()
+
+called when this object is destroyed
+
+=cut
+
 sub finish {
   my $this = shift;
 
-  $this->clearRefs();
+  $_->finish() foreach values %{$this->{groups}};
 
   undef $this->{groups};
-  undef $this->{labelFormat};
-  undef $this->{labelBrackets};
+  undef $this->{session};
+  undef $this->{labelDefinition};
 }
 
-sub clearRefs {
+=begin TML
+
+---++ ObjectMethod parseLabelDefinition($string)
+
+parses a label definition and returns a hash of the form
+
+<verbatim>
+{
+  leftBracket => "(",
+  "type" => "1",
+  rightBracket => ")",
+}
+</verbatim>
+
+=cut
+
+sub parseLabelDefinition {
+  my ($this, $string) = @_;
+
+  $string //= Foswiki::Func::getPreferencesValue("REFNOTESPLUGIN_LABELFORMAT") // "(1)";
+
+  my %def = (
+    leftBracket => "(",
+    type => "1",
+    rightBracket => ")",
+  );
+
+  $string =~ s/^\s+//;
+  $string =~ s/\s+//;
+
+  if ($string =~ /^(.)?(1|a|A|x|X|i|I)(.)?$/) {
+    $def{leftBracket} = $1 // "";
+    $def{type} = $2;
+    $def{rightBracket} = $3 // "";
+  }
+
+  #print STDERR "labelDef=".dump(\%def)."\n";
+
+
+  return \%def;
+}
+
+=begin TML
+
+---++ ObjectMethod getLabelDefinition() -> $labelDef
+
+returns the global label definition
+
+=cut
+
+sub getLabelDefinition {
+  my $this = shift;
+
+  return $this->{labelDefinition} // $this->parseLabelDefinition();
+}
+
+=begin TML
+
+---++ ObjectMethod reset($groupName)
+
+reset the refernce named group
+
+=cut
+
+sub reset {
   my ($this, $groupName) = @_;
 
   if (defined $groupName) {
-    my $group = $this->{group}{$groupName};
-    return unless defined $group;
-    $group->{refs} = [];
-    $group->{index} = 1;
+    my $group = $this->{groups}{$groupName};
+    $group->reset() if defined $group;
   } else {
     foreach my $group (values %{$this->{groups}}) {
-      $group->{refs} = [];
-      $group->{index} = 1;
+      $group->reset();
     }
   }
 }
 
+=begin TML
+
+---++ ObjectMethod REF($params, $topic, $web) -> $string
+
+implements the %REF macro
+
+=cut
+
 sub REF {
-  my ($this, $session, $params, $topic, $web) = @_;
+  my ($this, $params, $topic, $web) = @_;
 
   _writeDebug("called REF()");
-  my $result = '';
-
   my $ref = $this->getRef($params);
   return _inlineError("unknown reference") unless defined $ref;
 
-  return $this->formatRef($ref);
+  return $ref->render();
 }
 
-sub getRef {
-  my ($this, $params) = @_;
+=begin TML
 
-  my $ref;
+---++ ObjectMethod REFERENCES($params, $topic, $web) -> $string
 
-  my $groupName = $params->{group} // 'default';
-  my $name = $params->{name};
-  my $hidden = Foswiki::Func::isTrue($params->{name}, 0) ? 1:0;
-  my $text = $params->{_DEFAULT};
+implements the %REFERENCES macro
 
-  my $group = $this->{groups}{$groupName};
-
-  unless (defined $group) {
-    $this->{groups}{$group} = $group = {
-      refs => {},
-      index => 1,
-      name => $groupName,
-    };
-  }
-
-  if (defined $text) {
-    my $index = $hidden ? 0 : $group->{index}++;
-    $name //= "refLink$index";
-
-    $ref = {
-      name => $name,
-      index => $index,
-      text => $text,
-      groupName => $groupName,
-      hidden => $hidden
-    };
-
-    $group->{refs}{$name} = $ref;
-
-  } else {
-    $ref = $group->{refs}{$name} if defined $name;
-    if ($ref) {
-      if ($ref->{hidden}) {
-        my $index = $group->{index}++;
-        $ref->{hidden} = 0;
-        $ref->{index} = $index;
-        $ref->{name} = "refLink$index";
-      }
-    }
-  }
-
-  return $ref;
-}
-
-sub getLabel {
-  my ($this, $ref) = @_;
-
-  my $label;
-
-  #_writeDebug("called getLabel with format='$this->{labelFormat}', ref=".dump($ref));
-
-  # alphabet
-  $label = chr((ord 'a') + ($ref->{index} - 1)) if $this->{labelFormat} eq 'a';
-  $label = chr((ord 'A') + ($ref->{index} - 1)) if $this->{labelFormat} eq 'A';
-
-  # roman
-  if ($ROMAN_ENABLED) {
-    $label = Roman::roman($ref->{index}) if $this->{labelFormat} eq 'i';
-    $label = Roman::Roman($ref->{index}) if $this->{labelFormat} eq 'I';
-  }
-
-  # hexadecimal
-  $label = sprintf("0x%x", $ref->{index}) if $this->{labelFormat} eq 'x';
-  $label = sprintf("0X%X", $ref->{index}) if $this->{labelFormat} eq 'X';
-
-  # arabic numerals
-  $label = $ref->{index} unless defined $label;
-
-  # add brackets
-  $label = $this->{labelBrackets}[0] . $label . $this->{labelBrackets}[1];
-
-  _writeDebug("getLabel() - $label");
-
-  return $label;
-}
-
-sub formatRef {
-  my ($this, $ref) = @_;
-
-  return "" if $ref->{hidden};
-
-  my $label = $this->getLabel($ref);
-  $label = $ref->{groupName} . " " . $label unless $ref->{groupName} eq 'default';
-
-  my $anchor = $this->getAnchor($ref);
-
-  return "<sup class='refLink foswikiSmall'><a href='#$anchor' class='foswikiNoDecoration'>$label</a></sup>";
-}
-
-sub getAnchor {
-  my ($this, $ref) = @_;
-
-  my $anchor = "refNote";
-  $anchor .= "_$ref->{groupName}" if $ref->{groupName} ne 'default';
-  $anchor .= "_$ref->{index}";
-
-  return $anchor;
-}
+=cut
 
 sub REFERENCES {
-  my ($this, $session, $params, $topic, $web) = @_;
+  my ($this, $params, $topic, $web) = @_;
 
   _writeDebug("called REFERENCES()");
 
   my $result = "";
   my $groupName = $params->{group};
+  my $doReset = Foswiki::Func::isTrue($params->{reset}, 1) ? 1:0;
 
   if (defined $groupName) {
     my $group = $this->{groups}{$groupName};
     return "" unless defined $group;
 
-    my $result = $this->formatGroup($group, $params);
-    $this->clearRefs($groupName) if Foswiki::Func::isTrue($params->{clear}, 1);
+    my $result = $group->render($params);
+    $group->reset() if $doReset;
 
   } else {
     my @result = ();
     foreach my $group (sort {$a->{name} cmp $b->{name}} values %{$this->{groups}}) {
-      my $groupResult = $this->formatGroup($group, $params);
+      my $groupResult = $group->render($params);
       push @result, $groupResult if $groupResult;
+      $group->reset() if $doReset;
     }
     return "" unless @result;
 
     $result = join("", @result);
-    $this->clearRefs() if Foswiki::Func::isTrue($params->{clear}, 1);
   }
 
   my $numGroups = scalar(keys %{$this->{groups}});
@@ -236,47 +221,78 @@ sub REFERENCES {
   return Foswiki::Func::decodeFormatTokens($result);
 }
 
-sub formatGroup {
-  my ($this, $group, $params) = @_;
+=begin TML
 
-  return "" unless defined $group;
+---++ ObjectMethod getRef($params)
 
-  my $format = $params->{format} // '<li id="$name"><b>$label</b> $text </li>';
+returns a ref object. either creates one or returns an already stored one
 
-  #print STDERR "called formatGroup($group->{name})\n";
+params:
 
-  my @result = ();
-  foreach my $ref (sort {$a->{index} <=> $b->{index}} values %{$group->{refs}}) {
-    next if $ref->{hidden};
+   * group
+   * name
+   * _DEFAULT (text)
 
-    my $line = $format;
-    my $label = $this->getLabel($ref);
-    my $name = $this->getAnchor($ref);
+=cut
 
-    $line =~ s/\$index\b/$ref->{index}/g;
-    $line =~ s/\$label\b/$label/g;
-    $line =~ s/\$name\b/$name/g;
-    $line =~ s/\$text\b/$ref->{text}/g;
+sub getRef {
+  my ($this, $params) = @_;
 
-    push @result, $line;
+  my $ref;
+
+  my $groupName = $params->{group} // 'default';
+  my $id = $params->{id};
+  my $hidden = Foswiki::Func::isTrue($params->{hidden}, 0) ? 1:0;
+  my $text = $params->{_DEFAULT};
+
+  #print STDERR "called getRef(group=$groupName, id=".($id//'undef').", text=".($text//'undef').", hidden=$hidden)\n";
+
+  my $group = $this->getGroup($groupName);
+
+  #print STDERR "group=$group, groupName=$group->{id}, id=$id\n";
+
+  if (defined $text) {
+    $ref = Foswiki::Plugins::RefNotesPlugin::Ref->new(
+      id => $id,
+      text => $text,
+      hidden => $hidden,
+      label => $params->{label},
+    );
+
+    $group->addRef($ref);
+
+
+  } else {
+    $ref = $group->getRef($id) if defined $id;
+    $group->activateRef($ref) if $ref;
   }
-  return "" unless @result;
 
-  my $groupName = $group->{name};
-  my $header = $params->{header} // ($format eq "" ? "" : "<ul class='refNotes foswikiNoBullets \$group'>");
-  my $footer = $params->{footer} // ($format eq "" ? "" : "</ul>");
-  my $separator = $params->{separator} // "";
-
-  my $result = $header . join($separator, @result) . ($footer);
-
-  my $groupTitle = $params->{$groupName . "_title"} // ($groupName eq "default" ? "References" : ucfirst($groupName));
-  #print STDERR "groupTitle=$groupTitle, groupName='$groupName'\n";
-  $result =~ s/\$count\b/$group->{index}/g;
-  $result =~ s/\$group\b/$groupName/g;
-  $result =~ s/\$title\b/$groupTitle/g;
-
-  return $result;
+  return $ref;
 }
+
+=begin TML
+
+---++ ObjectMethod getGroup($name) -> $group
+
+returns or creates the named group
+
+=cut
+
+sub getGroup {
+  my ($this, $name) = @_;
+
+  my $group = $this->{groups}{$name};
+
+  unless (defined $group) {
+    $this->{groups}{$name} = $group = Foswiki::Plugins::RefNotesPlugin::Group->new($this,
+      name => $name,
+    );
+  }
+
+  return $group;
+}
+
+# statics
 
 sub _writeDebug {
   return unless TRACE;

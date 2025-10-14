@@ -28,7 +28,7 @@ use warnings;
 
 use Foswiki::Func ();
 
-our $VERSION = '0.20';
+our $VERSION = '0.30';
 our $RELEASE = '%$RELEASE%';
 our $SHORTDESCRIPTION = 'Footnotes for Foswiki';
 our $LICENSECODE = '%$LICENSECODE%';
@@ -45,8 +45,8 @@ initialize the plugin, automatically called during the core initialization proce
 
 sub initPlugin {
 
-  Foswiki::Func::registerTagHandler('REF', sub { return getCore()->REF(@_); });
-  Foswiki::Func::registerTagHandler('REFERENCES', sub { return getCore()->REFERENCES(@_); });
+  Foswiki::Func::registerTagHandler('REF', sub { return getCore(shift)->REF(@_); });
+  Foswiki::Func::registerTagHandler('REFERENCES', sub { return getCore(shift)->REFERENCES(@_); });
 
   return 1;
 }
@@ -74,9 +74,11 @@ returns a singleton core object for this plugin
 =cut
 
 sub getCore {
+  my $session = shift || $Foswiki::Plugins::SESSION;
+
   unless (defined $core) {
     require Foswiki::Plugins::RefNotesPlugin::Core;
-    $core = Foswiki::Plugins::RefNotesPlugin::Core->new();
+    $core = Foswiki::Plugins::RefNotesPlugin::Core->new($session);
   }
   return $core;
 }

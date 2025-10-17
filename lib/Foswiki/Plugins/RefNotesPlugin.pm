@@ -29,7 +29,7 @@ use warnings;
 use Foswiki::Func ();
 use Foswiki::Plugins::JQueryPlugin ();
 
-our $VERSION = '0.50';
+our $VERSION = '0.51';
 our $RELEASE = '%$RELEASE%';
 our $SHORTDESCRIPTION = 'Footnotes for Foswiki';
 our $LICENSECODE = '%$LICENSECODE%';

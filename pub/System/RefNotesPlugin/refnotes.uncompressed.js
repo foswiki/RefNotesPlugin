@@ -142,11 +142,8 @@
 
     self.opts.content = function() {
       if (self.content === undefined) {
-        var selector = $(this).attr("href"),
-          content = $(selector).clone();
-
-        content.find("b").remove();
-        self.content = content.html();
+        var selector = $(this).attr("href") + ' td';
+        self.content = $(selector).html();
       }
 
       return self.content;

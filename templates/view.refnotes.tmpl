@@ -1,0 +1,31 @@
+%TMPL:INCLUDE{"view"}%
+
+%TMPL:DEF{"aftertext"}%%TMPL:P{"refnotes"}%%TMPL:P{"refnotes::styles"}%%TMPL:END%
+
+%TMPL:DEF{"refnotes"}%<noautolink>
+%REFERENCES{
+  header="<div class='refNotesContainer $group'>
+<h2>$percntMAKETEXT{\"$title\"}$percnt</h2>
+<table class='foswikiLayoutTable refNotes'>"
+  format="<tr id='$id'><th>$label</th><td> $text </td></tr>"
+  footer="</table></div>$n"
+}%
+</noautolink>%TMPL:END%
+
+%TMPL:DEF{"refnotes::styles"}%<style>
+.refNotesContainer {
+  margin:0 0 2em 0;
+}
+.refLink a {
+  color:#06c;
+  margin:0 0.25em;
+}
+.refNotes th {
+  color:#06c;
+  font-weight:normal;
+  padding-right:0.5em;
+}
+.refNotes td {
+  width:100%;
+}
+</style>%TMPL:END%

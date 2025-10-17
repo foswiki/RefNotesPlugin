@@ -92,7 +92,7 @@ formats a given ref
 =cut
 
 sub render {
-  my $this = shift;
+  my ($this, $params) = @_;
 
   return "" if $this->{hidden};
 
@@ -100,31 +100,36 @@ sub render {
   my $groupName = $this->getGroupName();
   $label =  "$groupName " . $label unless $groupName eq 'default';
 
+  my $showTooltip = Foswiki::Func::isTrue($params->{tooltip}, 1);
+  my $class = "refLink foswikiSmall";
+  $class .= " refLinkWithTooltip" if $showTooltip;
+
   my $anchor = $this->getAnchor();
 
-  return "<sup class='refLink foswikiSmall'><a href='#$anchor' class='foswikiNoDecoration'>$label</a></sup>";
+  return "<sup class='$class'><a href='#$anchor' class='foswikiNoDecoration'>$label</a></sup>";
 }
 
 =begin TML
 
----++ ObjectMethod getLabel()
+---++ ObjectMethod getLabel($index) -> $string
 
 generates a link label for the given ref
 
 =cut
 
 sub getLabel {
-  my $this = shift;
+  my ($this, $index) = @_;
 
   my $label;
   my $def = $this->getLabelDefinition();
+  $index ||= $this->{index};
 
   # alphabet
   if ($def->{type} eq 'a' || $def->{type} eq 'A') {
     $label = "";
     my $start = ord($def->{type});
     my $div;
-    my $rem = $this->{index} - 1;
+    my $rem = $index - 1;
     do {
       $div = int($rem / 26);
       $rem = $rem % 26;
@@ -137,16 +142,16 @@ sub getLabel {
 
   # roman
   if ($ROMAN_ENABLED) {
-    $label = Roman::roman($this->{index}) if $def->{type} eq 'i';
-    $label = Roman::Roman($this->{index}) if $def->{type} eq 'I';
+    $label = Roman::roman($index) if $def->{type} eq 'i';
+    $label = Roman::Roman($index) if $def->{type} eq 'I';
   }
 
   # hexadecimal
-  $label = sprintf("0x%x", $this->{index}) if $def->{type} eq 'x';
-  $label = sprintf("0X%X", $this->{index}) if $def->{type} eq 'X';
+  $label = sprintf("0x%x", $index) if $def->{type} eq 'x';
+  $label = sprintf("0X%X", $index) if $def->{type} eq 'X';
 
   # arabic numerals fallback
-  $label //= $this->{index};
+  $label //= $index;
 
   # add brackets
   $label = $def->{leftBracket} . $label . $def->{rightBracket};
@@ -175,19 +180,21 @@ sub getLabelDefinition {
 
 =begin TML
 
----++ ObjectMethod getAnchor()
+---++ ObjectMethod getAnchor($index) -> $string
 
 returns the anchor name for a ref
 
 =cut
 
 sub getAnchor {
-  my $this = shift;
+  my ($this, $index) = @_;
+
+  $index ||= $this->{index};
 
   my $anchor = "refNote";
   my $groupName = $this->getGroupName();
   $anchor .= "_$groupName" if $groupName ne 'default';
-  $anchor .= "_$this->{index}";
+  $anchor .= "_$index";
 
   return $anchor;
 }

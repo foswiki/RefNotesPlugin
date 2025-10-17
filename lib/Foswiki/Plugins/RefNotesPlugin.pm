@@ -27,8 +27,9 @@ use strict;
 use warnings;
 
 use Foswiki::Func ();
+use Foswiki::Plugins::JQueryPlugin ();
 
-our $VERSION = '0.30';
+our $VERSION = '0.50';
 our $RELEASE = '%$RELEASE%';
 our $SHORTDESCRIPTION = 'Footnotes for Foswiki';
 our $LICENSECODE = '%$LICENSECODE%';
@@ -47,6 +48,7 @@ sub initPlugin {
 
   Foswiki::Func::registerTagHandler('REF', sub { return getCore(shift)->REF(@_); });
   Foswiki::Func::registerTagHandler('REFERENCES', sub { return getCore(shift)->REFERENCES(@_); });
+  Foswiki::Plugins::JQueryPlugin::registerPlugin('RefNotes', 'Foswiki::Plugins::RefNotesPlugin::JQuery');
 
   return 1;
 }

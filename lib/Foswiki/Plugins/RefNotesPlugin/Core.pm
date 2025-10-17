@@ -29,6 +29,7 @@ an singleton instance is allocated on demand
 =cut
 
 use Foswiki::Func ();
+use Foswiki::Plugins::JQueryPlugin ();
 use Foswiki::Plugins::RefNotesPlugin::Ref ();
 use Foswiki::Plugins::RefNotesPlugin::Group ();
 #use Data::Dump qw(dump);
@@ -176,7 +177,8 @@ sub REF {
   my $ref = $this->getRef($params);
   return _inlineError("unknown reference") unless defined $ref;
 
-  return $ref->render();
+  Foswiki::Plugins::JQueryPlugin::createPlugin("RefNotes");
+  return $ref->render($params);
 }
 
 =begin TML

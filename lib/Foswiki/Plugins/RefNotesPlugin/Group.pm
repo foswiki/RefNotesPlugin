@@ -18,6 +18,8 @@ package Foswiki::Plugins::RefNotesPlugin::Group;
 use strict;
 use warnings;
 
+use Foswiki::Func ();
+
 =begin TML
 
 ---+ package Foswiki::Plugins::RefNotesPlugin::Group
@@ -73,17 +75,20 @@ formats a reference group
 sub render {
   my ($this, $params) = @_;
 
-  my $format = $params->{format} // '<li id="$id"><b>$label</b> $text </li>';
+  my $format = $params->{format} // '<tr id="$id"><th>$label</th><td> $text </td></tr>';
+  my $showHidden = Foswiki::Func::isTrue($params->{showhidden}, 0);
 
   my @result = ();
-  foreach my $ref (sort {$a->{index} <=> $b->{index}} values %{$this->{refs}}) {
-    next if $ref->{hidden};
+  my $num = 1;
+  foreach my $ref (sort {$a->{index} <=> $b->{index} or $a->{text} cmp $b->{text}} values %{$this->{refs}}) {
+    next if $ref->{hidden} && !$showHidden;
 
+    my $index = $ref->{index} || $num++;
     my $line = $format;
-    my $label = $ref->getLabel();
-    my $id = $ref->getAnchor();
+    my $id = $ref->getAnchor($index);
+    my $label = $ref->getLabel($index);
 
-    $line =~ s/\$index\b/$ref->{index}/g;
+    $line =~ s/\$index\b/$index/g;
     $line =~ s/\$label\b/$label/g;
     $line =~ s/\$id\b/$id/g;
     $line =~ s/\$text\b/$ref->{text}/g;
@@ -93,8 +98,8 @@ sub render {
   return "" unless @result;
 
   my $groupName = $this->{name};
-  my $header = $params->{header} // ($format eq "" ? "" : "<ul class='refNotes foswikiNoBullets \$group'>");
-  my $footer = $params->{footer} // ($format eq "" ? "" : "</ul>");
+  my $header = $params->{header} // ($format eq "" ? "" : "<table class='foswikiLayoutTable refNotes \$group'>");
+  my $footer = $params->{footer} // ($format eq "" ? "" : "</table>");
   my $separator = $params->{separator} // "";
 
   my $result = $header . join($separator, @result) . ($footer);

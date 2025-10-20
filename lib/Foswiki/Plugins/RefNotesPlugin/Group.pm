@@ -15,16 +15,16 @@
 
 package Foswiki::Plugins::RefNotesPlugin::Group;
 
-use strict;
-use warnings;
-
-use Foswiki::Func ();
-
 =begin TML
 
 ---+ package Foswiki::Plugins::RefNotesPlugin::Group
 
 =cut
+
+use strict;
+use warnings;
+
+use Foswiki::Func ();
 
 =begin TML
 
@@ -60,7 +60,8 @@ called when this object is destroyed
 sub finish {
   my $this = shift;
 
-  $this->reset();
+  $_->finish() foreach values %{$this->{refs}};
+  undef $this->{refs};
   undef $this->{core};
 }
 
@@ -75,18 +76,20 @@ formats a reference group
 sub render {
   my ($this, $params) = @_;
 
-  my $format = $params->{format} // '<tr id="$id"><th>$label</th><td> $text </td></tr>';
+  my $format = $params->{format} // '<tr id="$id"><th><a href="#$id" class="foswikiNoDecoration">$label</a></th><td> $text </td></tr>';
   my $showHidden = Foswiki::Func::isTrue($params->{showhidden}, 0);
+  my $labels = $params->{labels}; 
+  my $labelDef = $labels ? $this->getCore->parseLabelDefinition($labels) : undef;
 
   my @result = ();
   my $num = 1;
-  foreach my $ref (sort {$a->{index} <=> $b->{index} or $a->{text} cmp $b->{text}} values %{$this->{refs}}) {
+  foreach my $ref (sort {$a->{index} <=> $b->{index} or lc($a->{id}//$a->{text}) cmp lc($b->{id}//$b->{text})} values %{$this->{refs}}) {
     next if $ref->{hidden} && !$showHidden;
 
-    my $index = $ref->{index} || $num++;
+    my $index = $ref->{index} || $num;
     my $line = $format;
-    my $id = $ref->getAnchor($index);
-    my $label = $ref->getLabel($index);
+    my $id = $ref->getAnchor($ref->{id} // $ref->{index} // $num);
+    my $label = $ref->getLabel($index, $labelDef);
 
     $line =~ s/\$index\b/$index/g;
     $line =~ s/\$label\b/$label/g;
@@ -94,6 +97,7 @@ sub render {
     $line =~ s/\$text\b/$ref->{text}/g;
 
     push @result, $line;
+    $num++;
   }
   return "" unless @result;
 
@@ -136,6 +140,27 @@ sub addRef {
 
 =begin TML
 
+---++ ObjectMethod activateRef($ref)
+
+activates a hidden group and adds them to the index
+
+=cut
+
+sub activateRef {
+  my ($this, $ref) = @_;
+
+  if ($ref->{hidden}) {
+    my $index = $this->{index}++;
+    $ref->{hidden} = 0;
+    $ref->{index} = $index;
+    $ref->{id} //= "refLink$index";
+  }
+
+  return $ref;
+}
+
+=begin TML
+
 ---++ ObjectMethod getRef($name) -> $ref
 
 returns a ref object if found in this group
@@ -170,45 +195,6 @@ returns a reference to the Core object
 
 sub getCore {
   return $_[0]->{core};
-}
-
-=begin TML
-
----++ ObjectMethod activateRef($ref)
-
-activates a hidden group and adds them to the index
-
-=cut
-
-sub activateRef {
-  my ($this, $ref) = @_;
-
-  if ($ref->{hidden}) {
-    my $index = $this->{index}++;
-    $ref->{hidden} = 0;
-    $ref->{index} = $index;
-    $ref->{id} //= "refLink$index";
-  }
-
-  return $ref;
-}
-
-=begin TML
-
----++ ObjectMethod reset()
-
-finishes all refs stored in this group and resets the index
-
-=cut
-
-sub reset {
-  my $this = shift;
-
-  $_->finish() foreach values %{$this->{refs}};
-  $this->{refs} = {};
-  $this->{index} = 1;
-
-  return $this;
 }
 
 1;

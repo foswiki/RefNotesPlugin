@@ -1,1 +1,4 @@
 Roman,>=1.0,cpan,Optional
+BibTeX::Parser,>=1.0,cpan,Optional
+Sereal::Encoder,>=5.0,cpan,Optional
+Sereal::Decoder,>=5.0,cpan,Optional

@@ -1,3 +1,5 @@
+*.swp
+*,v
 /RefNotesPlugin.md5
 /RefNotesPlugin.sha1
 /RefNotesPlugin.tgz

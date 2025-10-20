@@ -75,23 +75,26 @@ This is a note reference.%REF{"Wonder what this note is all about." group="notes
 
 ---++ Syntax
 
+---+++ REF
 Reference Links are established the content using the =%REF= makro:
 
 | *Parameters* | *Description* | *Default* |
-| "..." | reference note; may be omitted when reusing a named reference |  |
-| id="..." | assign a key to the reference or reuse an already defined reference | _random_ |
+| "..." or text="..." | reference note; may be omitted when reusing a named reference |  |
+| id="..." | assign a citation key to the reference or reuse an already defined reference | _random_ |
 | group="..." | optional group which lists this reference | default |
 | label="..." | label for this reference only; see label format below | =%REFNOTESPLUGIN_LABELFORMAT{default="(1)"}%= |
 | tooltip="on/off" | toggle displaying the reference note in a tooltip | on |
 | hidden="on/off" | only define a named reference but don't display nor add it to the references list unless being used by another =%REF= reusing this named reference | off |
+| overwrite="on/off" | this allows to redefined a named reference; if not specified explicitly an error will be produced when an already known citation key is being defined | off |
 
+---+++ REFERENCES
 In general all references are to be displayed at the bottom of the page. You may do so explicitly using the =%REFERENCES= macro.
 Note that !NatSkin does so automatically.
 
 | *Parameters* | *Description* | *Default* |
 | group="..." | name the group to render all references for; renders all groups if left empty | |
-| reset="on/off" | clears the list of references once the group has been rendered; any additional references following this macro assemble references afresh | on |
 | showhidden="on/off" | display all references, even hidden ones not used on the topic | off |
+| labels="..." | label for all references in this group; this overrides the label format specified per reference |  |
 | header="..." | header string prepended to the output | <verbatim><ul class='refNotes foswikiNoBullets $group'></verbatim> |
 | format="...." | format string for each reference note in the list | <verbatim><li id="$id"><b>$label</b> $text </li></verbatim> |
 | separator="..." | separator string between each note rendered | |
@@ -111,6 +114,25 @@ In addition =header=, =separator= and =footer= may have:
    * =$count=: number of references in a group
    * =$numGroups=: number of groups
    * =$title=: title of reference group (e.g. "Reference" for the default group)
+
+---+++ REFIMPORT
+
+This macro is only available if feature "bibtex" is available on your platform (see section #Extended_Features below).
+
+This macro allows to import a bibtex file to the list of available references. The citation key of a bibtex entry
+can then be used as an id in the =%REF= macro. 
+
+| *Parameters* | *Description* | *Default* |
+| "..." or attachment="..." |  name of the bibtex file attached to a topic | |
+| topic="..." | name of the topic where the bibtex file is attached | _current topic_ |
+| group="..." | name of the reference group which the entries are assigned to | default |
+| labels="..." | define the default label for all imported references | |
+
+Note that importing large bibtex files (+1000 entries) might cause a significant delay when
+first importing it. A further request will fetch them from a cache. The cache is kept in 
+sync if you update the bibtex file later on. To force-refresh the bibtex cache using the =?refresh=bibtex=
+or =?rerfesh=on= url parameter.
+
 
 ---++ Label Formats
 
@@ -140,8 +162,10 @@ Possible label types:
    * =1= - numeric
    * =a= - alphabetic
    * =A= - upper case alphabetic
-   * =i= - romanic 
+   * =i= - romanic (only available if feature "roman" is available)
    * =I= - upper case romanic 
+   * =k= - citation key
+   * =K= - upper case citation key
    * =x= - hexadecimal
    * =X= - upper case hexadecimal
 
@@ -191,6 +215,17 @@ To display reference lists on the bottom of a page add the =refnotes= skin overl
 
 <verbatim>   * Set SKIN = natedit, refnotes, pattern</verbatim>
 
+---++ Extended Features
+
+There are a couple of features that might or might not be available on your platform depending on the instaled CPAN packages.
+Installing these optional dependencies will enable them as required:
+
+| *Feature* | *Dependency* | *Description* |
+| roman | [[https://metacpan.org/pod/Roman][Roman]] | enables roman letters as reference labels |
+| bibtex | [[https://metacpan.org/pod/BibTeX::Parser][BibTex::Parser]], \
+            [[https://metacpan.org/pod/Sereal::Decoder][Sereal::Decoder]], \
+            [[https://metacpan.org/pod/Sereal::Encoder][Sereal::Encoder]] | enables importing bibtex files |
+
 ---++ Installation Instructions
 %$INSTALL_INSTRUCTIONS%
 
@@ -200,6 +235,7 @@ To display reference lists on the bottom of a page add the =refnotes= skin overl
 ---++ Change History
 
 %TABLE{columnwidths="7em" tablewidth="100%"}%
+|  18 Oct 2025 | added bibtex importer; added label format =k= and =K= |
 |  17 Oct 2025 | added toolip |
 |  13 Oct 2025 | initial implementation |
 

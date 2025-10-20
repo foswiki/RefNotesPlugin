@@ -15,30 +15,14 @@
 
 package Foswiki::Plugins::RefNotesPlugin::Ref;
 
-use strict;
-use warnings;
-
 =begin TML
 
 ---+ package Foswiki::Plugins::RefNotesPlugin::Group
 
 =cut
 
-
-=begin TML
-
----++ =ClassProperty= ROMAN_ENABLED
-
-boolean true if the Roman package is installed
-
-=cut
-
-our $ROMAN_ENABLED;
-
-BEGIN {
-  eval 'use Roman()';
-  $ROMAN_ENABLED = $@ ? 0 : 1;
-}
+use strict;
+use warnings;
 
 =begin TML
 
@@ -62,9 +46,9 @@ sub new {
   my $class = shift;
 
   my $this = bless({
-    id => "refLink",
     @_
   }, $class);
+
 
   return $this;
 }
@@ -96,9 +80,9 @@ sub render {
 
   return "" if $this->{hidden};
 
-  my $label = $this->getLabel();
-  my $groupName = $this->getGroupName();
-  $label =  "$groupName " . $label unless $groupName eq 'default';
+  my $label = $params->{label};
+  my $def = $label ? $this->getCore->parseLabelDefinition($label):undef;
+  $label = $this->getLabel(undef, $def);
 
   my $showTooltip = Foswiki::Func::isTrue($params->{tooltip}, 1);
   my $class = "refLink foswikiSmall";
@@ -111,46 +95,53 @@ sub render {
 
 =begin TML
 
----++ ObjectMethod getLabel($index) -> $string
+---++ ObjectMethod getLabel($index, $def) -> $string
 
 generates a link label for the given ref
 
 =cut
 
 sub getLabel {
-  my ($this, $index) = @_;
+  my ($this, $index, $def) = @_;
 
   my $label;
-  my $def = $this->getLabelDefinition();
+  $def //= $this->getLabelDefinition();
   $index ||= $this->{index};
 
-  # alphabet
-  if ($def->{type} eq 'a' || $def->{type} eq 'A') {
-    $label = "";
-    my $start = ord($def->{type});
-    my $div;
-    my $rem = $index - 1;
-    do {
-      $div = int($rem / 26);
-      $rem = $rem % 26;
-      $label .= chr($start + $rem);
-      $div--;
-      $rem = $div * 26;
-    } while ($div >= 0);
-    $label = reverse $label;
-  } 
+  # use id as a key
+  if ($def->{type} eq 'k') {
+    $label = $this->{id};
+  } elsif ($def->{type} eq 'K') {
+    $label = uc($this->{id});
+  } elsif ($index =~ /^\d+$/) {
+    # alphabet
+    if ($def->{type} eq 'a' || $def->{type} eq 'A') {
+      $label = "";
+      my $start = ord($def->{type});
+      my $div;
+      my $rem = $index - 1;
+      do {
+        $div = int($rem / 26);
+        $rem = $rem % 26;
+        $label .= chr($start + $rem);
+        $div--;
+        $rem = $div * 26;
+      } while ($div >= 0);
+      $label = reverse $label;
+    } 
 
-  # roman
-  if ($ROMAN_ENABLED) {
-    $label = Roman::roman($index) if $def->{type} eq 'i';
-    $label = Roman::Roman($index) if $def->{type} eq 'I';
+    # roman
+    if ($this->getCore->hasFeature("roman")) {
+      $label = Roman::roman($index) if $def->{type} eq 'i';
+      $label = Roman::Roman($index) if $def->{type} eq 'I';
+    }
+
+    # hexadecimal
+    $label = sprintf("0x%x", $index) if $def->{type} eq 'x';
+    $label = sprintf("0X%X", $index) if $def->{type} eq 'X';
   }
 
-  # hexadecimal
-  $label = sprintf("0x%x", $index) if $def->{type} eq 'x';
-  $label = sprintf("0X%X", $index) if $def->{type} eq 'X';
-
-  # arabic numerals fallback
+  # fallback
   $label //= $index;
 
   # add brackets
@@ -163,38 +154,38 @@ sub getLabel {
 
 =begin TML
 
----++ ObjectMethod getLabelDefinition()
+---++ ObjectMethod getLabelDefinition($string) -> $hash
 
 gets the local or global label definition
 
 =cut
 
 sub getLabelDefinition {
-  my $this = shift;
+  my ($this, $string) = @_;
 
   return $this->{labelDefinition} // $this->getCore->parseLabelDefinition($this->{label})
-    if defined $this->{label};
+    if defined $this->{label} && !defined($string);
 
-  return $this->getCore->getLabelDefinition();
+  return $this->getCore->getLabelDefinition($string);
 }
 
 =begin TML
 
----++ ObjectMethod getAnchor($index) -> $string
+---++ ObjectMethod getAnchor($id) -> $string
 
 returns the anchor name for a ref
 
 =cut
 
 sub getAnchor {
-  my ($this, $index) = @_;
+  my ($this, $id) = @_;
 
-  $index ||= $this->{index};
+  $id //= $this->{id} // $this->{index};
 
-  my $anchor = "refNote";
+  my $anchor = "ref";
   my $groupName = $this->getGroupName();
   $anchor .= "_$groupName" if $groupName ne 'default';
-  $anchor .= "_$index";
+  $anchor .= "_$id";
 
   return $anchor;
 }
